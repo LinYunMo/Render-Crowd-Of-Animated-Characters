@@ -224,7 +224,7 @@ public class AnimMapBakerWindow : EditorWindow {
                 go.AddComponent<AnimationController>().animationClip.Add(data.ClipName);
                 go.GetComponent<AnimationController>().animationMap.Add(animMap);
                 go.GetComponent<AnimationController>().animationLength.Add(data.AnimLen);
-                //go.GetComponent<AnimationController>().defaultClip = data.DefaultClip;
+                go.GetComponent<AnimationController>().defaultClip = data.DefaultClip;
                 go.AddComponent<MeshRenderer>().sharedMaterial = mat;
                 go.AddComponent<MeshFilter>().sharedMesh = _targetGo.GetComponentInChildren<SkinnedMeshRenderer>().sharedMesh;
 
@@ -238,7 +238,7 @@ public class AnimMapBakerWindow : EditorWindow {
             go.GetComponent<AnimationController>().animationClip.Add(data.ClipName);
             go.GetComponent<AnimationController>().animationMap.Add(animMap);
             go.GetComponent<AnimationController>().animationLength.Add(data.AnimLen);
-            // go.GetComponent<AnimationController>().defaultClip = data.DefaultClip;
+            go.GetComponent<AnimationController>().defaultClip = data.DefaultClip;
         }
         PrefabUtility.SaveAsPrefabAsset(go, Path.Combine(folderPath, $"{_targetGo.name}_anim.prefab")
             .Replace("\\", "/"));

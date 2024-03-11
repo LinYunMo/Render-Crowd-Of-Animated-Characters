@@ -94,11 +94,11 @@ public struct BakedData
     private readonly int _animMapWidth;
     private readonly int _animMapHeight;
     private readonly string _clipName;
-    // private readonly string _defaultClip;
+    private readonly string _defaultClip;
 
     #endregion
 
-    public BakedData(string name, float animLen, Texture2D animMap, string clipName)
+    public BakedData(string name, float animLen, Texture2D animMap, string clipName, string defaultClip = "")
     {
         _name = name;
         _animLen = animLen;
@@ -106,7 +106,7 @@ public struct BakedData
         _animMapWidth = animMap.width;
         _rawAnimMap = animMap.GetRawTextureData();
         _clipName = clipName;
-        // _defaultClip = defaultClip;
+        _defaultClip = defaultClip;
     }
 
     public int AnimMapWidth => _animMapWidth;
@@ -121,7 +121,7 @@ public struct BakedData
     
     public string ClipName => _clipName;
     
-    // public string DefaultClip => _defaultClip;
+    public string DefaultClip => _defaultClip;
 }
 
 /// <summary>
@@ -210,11 +210,8 @@ public class AnimMapBaker{
             sampleTime += perFrameTime;
         }
         animMap.Apply();
-        // TODO default clip
-        // TODO animLength not save，maybe effect error
-        // 速率时间，动画播放完成后便于控制
         
-        _bakedDataList.Add(new BakedData(animMap.name, curAnim.clip.length, animMap, curAnim.clip.name));
+        _bakedDataList.Add(new BakedData(animMap.name, curAnim.clip.length, animMap, curAnim.clip.name, _animData.Value.DefaultClip));
     }
 
     #endregion
