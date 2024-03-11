@@ -9,7 +9,8 @@ Shader "chenjd/BuiltIn/AnimMapShader"
 	{
 		_MainTex ("Texture", 2D) = "white" {}
 		_AnimMap ("AnimMap", 2D) ="white" {}
-		_AnimLen("Anim Length", Float) = 0
+        _AnimLen("Anim Length", Float) = 0
+        _PlayAnim("Play Anim", Float) = 0
 	}
 	
     SubShader
@@ -49,20 +50,24 @@ Shader "chenjd/BuiltIn/AnimMapShader"
             float4 _AnimMap_TexelSize;//x == 1/width
 
             float _AnimLen;
+            float _PlayAnim;
 
             
             v2f vert (appdata v, uint vid : SV_VertexID)
             {
                 UNITY_SETUP_INSTANCE_ID(v);
+                
+                float4 pos = v.pos;
+                if (_PlayAnim > 0.5) {
+                    float f = _Time.y / _AnimLen;
 
-                float f = _Time.y / _AnimLen;
+                    fmod(f, 1.0);
 
-                fmod(f, 1.0);
-
-                float animMap_x = (vid + 0.5) * _AnimMap_TexelSize.x;
-                float animMap_y = f;
-
-                float4 pos = tex2Dlod(_AnimMap, float4(animMap_x, animMap_y, 0, 0));
+                    float animMap_x = (vid + 0.5) * _AnimMap_TexelSize.x;
+                    float animMap_y = f;
+                    
+                    pos = tex2Dlod(_AnimMap, float4(animMap_x, animMap_y, 0, 0));
+                }
 
                 v2f o;
                 o.vertex = UnityObjectToClipPos(pos);

@@ -1,5 +1,5 @@
 %YAML 1.1
-%TAG !u! tag:unity3d.com,2011:
+%TAG !u! tag:yousandi.cn,2023:
 --- !u!47 &1
 QualitySettings:
   m_ObjectHideFlags: 0
@@ -303,11 +303,13 @@ QualitySettings:
     PSM: 5
     PSP2: 2
     Samsung TV: 2
+    Server: 0
     Standalone: 5
     Switch: 5
     Tizen: 2
     Web: 5
     WebGL: 3
+    WeixinMiniGame: 2
     WiiU: 5
     Windows Store Apps: 5
     XboxOne: 5

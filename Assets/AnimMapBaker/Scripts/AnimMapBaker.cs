@@ -1,6 +1,5 @@
 ﻿/*
- * Created by jiadong chen
- * https://jiadong-chen.medium.com/
+ * Created by Arthur Wang
  * 用来烘焙动作贴图。烘焙对象使用Animation组件，并且在导入时设置Rig为Legacy
  */
 using System.Collections;
@@ -28,6 +27,7 @@ public struct AnimData
     public List<AnimationState> AnimationClips => _animClips;
     public int MapWidth => _mapWidth;
     public string Name => _name;
+    public string DefaultClip => _animation.clip.name;
 
     #endregion
 
@@ -93,16 +93,20 @@ public struct BakedData
     private readonly byte[] _rawAnimMap;
     private readonly int _animMapWidth;
     private readonly int _animMapHeight;
+    private readonly string _clipName;
+    // private readonly string _defaultClip;
 
     #endregion
 
-    public BakedData(string name, float animLen, Texture2D animMap)
+    public BakedData(string name, float animLen, Texture2D animMap, string clipName)
     {
         _name = name;
         _animLen = animLen;
         _animMapHeight = animMap.height;
         _animMapWidth = animMap.width;
         _rawAnimMap = animMap.GetRawTextureData();
+        _clipName = clipName;
+        // _defaultClip = defaultClip;
     }
 
     public int AnimMapWidth => _animMapWidth;
@@ -114,6 +118,10 @@ public struct BakedData
     public byte[] RawAnimMap => _rawAnimMap;
 
     public int AnimMapHeight => _animMapHeight;
+    
+    public string ClipName => _clipName;
+    
+    // public string DefaultClip => _defaultClip;
 }
 
 /// <summary>
@@ -181,7 +189,7 @@ public class AnimMapBaker{
         float perFrameTime = 0;
 
         curClipFrame = Mathf.ClosestPowerOfTwo((int)(curAnim.clip.frameRate * curAnim.length));
-        perFrameTime = curAnim.length / curClipFrame; ;
+        perFrameTime = curAnim.length / curClipFrame;
 
         var animMap = new Texture2D(_animData.Value.MapWidth, curClipFrame, TextureFormat.RGBAHalf, true);
         animMap.name = string.Format($"{_animData.Value.Name}_{curAnim.name}.animMap");
@@ -202,8 +210,11 @@ public class AnimMapBaker{
             sampleTime += perFrameTime;
         }
         animMap.Apply();
-
-        _bakedDataList.Add(new BakedData(animMap.name, curAnim.clip.length, animMap));
+        // TODO default clip
+        // TODO animLength not save，maybe effect error
+        // 速率时间，动画播放完成后便于控制
+        
+        _bakedDataList.Add(new BakedData(animMap.name, curAnim.clip.length, animMap, curAnim.clip.name));
     }
 
     #endregion

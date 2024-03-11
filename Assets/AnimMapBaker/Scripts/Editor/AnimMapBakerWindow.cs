@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEditor;
 using System.IO;
 using UnityEngine.Rendering;
+using System.Collections.Generic;
 
 public class AnimMapBakerWindow : EditorWindow {
 
@@ -16,7 +17,9 @@ public class AnimMapBakerWindow : EditorWindow {
         // With shader
         Mat, 
         // Prefab with mat
-        Prefab 
+        Prefab,
+        // All in one
+        AllInOne
     }
 
     #region FIELDS
@@ -28,7 +31,7 @@ public class AnimMapBakerWindow : EditorWindow {
     private static AnimMapBaker _baker;
     private static string _path = "AnimMapBaker";
     private static string _subPath = "SubPath";
-    private static SaveStrategy _strategy = SaveStrategy.Prefab;
+    private static SaveStrategy _strategy = SaveStrategy.AllInOne;
     private static Shader _animMapShader;
     private static Shader _prevAnimMapShader;
     private static readonly int MainTex = Shader.PropertyToID("_MainTex");
@@ -96,6 +99,11 @@ public class AnimMapBakerWindow : EditorWindow {
         var list = _baker.Bake();
 
         if (list == null) return;
+        if (_strategy == SaveStrategy.AllInOne)
+        {
+            SaveAsOnePrefab(ref list);
+            return;
+        }
         foreach (var t in list)
         {
             var data = t;
@@ -103,7 +111,7 @@ public class AnimMapBakerWindow : EditorWindow {
         }
     }
 
-    private void Save(ref BakedData data)
+    private static void Save(ref BakedData data)
     {
         switch(_strategy)
         {
@@ -174,6 +182,68 @@ public class AnimMapBakerWindow : EditorWindow {
         var folderPath = CreateFolder();
         PrefabUtility.SaveAsPrefabAsset(go, Path.Combine(folderPath, $"{data.Name}.prefab")
             .Replace("\\", "/"));
+    }
+
+    private static void SaveAsOnePrefab(ref List<BakedData> list)
+    {
+        Material mat = null;
+        GameObject go = null;
+        var folderPath = CreateFolder();
+        for (int i = 0; i < list.Count; i++)
+        {
+            var data = list[i];
+            Texture2D animMap = null;
+            if (mat == null && go == null)
+            {
+                if(_animMapShader == null)
+                {
+                    EditorUtility.DisplayDialog("err", "shader is null!!", "OK");
+                }
+
+                if(_targetGo == null || !_targetGo.GetComponentInChildren<SkinnedMeshRenderer>())
+                {
+                    EditorUtility.DisplayDialog("err", "SkinnedMeshRender is null!!", "OK");
+                }
+
+                var smr = _targetGo.GetComponentInChildren<SkinnedMeshRenderer>();
+                mat = new Material(_animMapShader);
+                animMap = SaveAsAsset(ref data);
+                mat.SetTexture(MainTex, smr.sharedMaterial.mainTexture);
+                mat.SetTexture(AnimMap, animMap);
+                mat.SetFloat(AnimLen, data.AnimLen);
+
+                
+                AssetDatabase.CreateAsset(mat, Path.Combine(folderPath, $"{data.Name}.mat"));
+                
+                if(mat == null)
+                {
+                    EditorUtility.DisplayDialog("err", "mat is null!!", "OK");
+                    return;
+                }
+                go = new GameObject();
+                go.AddComponent<AnimationController>().animationClip.Add(data.ClipName);
+                go.GetComponent<AnimationController>().animationMap.Add(animMap);
+                go.GetComponent<AnimationController>().animationLength.Add(data.AnimLen);
+                //go.GetComponent<AnimationController>().defaultClip = data.DefaultClip;
+                go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+                go.AddComponent<MeshFilter>().sharedMesh = _targetGo.GetComponentInChildren<SkinnedMeshRenderer>().sharedMesh;
+
+                // AssetDatabase.SaveAssets();
+                // AssetDatabase.Refresh();
+                continue;
+            }
+
+            // need a new component to save all this assets
+            animMap = SaveAsAsset(ref data);
+            go.GetComponent<AnimationController>().animationClip.Add(data.ClipName);
+            go.GetComponent<AnimationController>().animationMap.Add(animMap);
+            go.GetComponent<AnimationController>().animationLength.Add(data.AnimLen);
+            // go.GetComponent<AnimationController>().defaultClip = data.DefaultClip;
+        }
+        PrefabUtility.SaveAsPrefabAsset(go, Path.Combine(folderPath, $"{_targetGo.name}_anim.prefab")
+            .Replace("\\", "/"));
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
     }
 
     private static string CreateFolder()
