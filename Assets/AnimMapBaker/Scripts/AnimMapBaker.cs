@@ -162,6 +162,7 @@ public class AnimMapBaker{
 
     public List<BakedData> Bake()
     {
+        _bakedDataList.Clear();
         if(_animData == null)
         {
             Debug.LogError("bake data is null!!");

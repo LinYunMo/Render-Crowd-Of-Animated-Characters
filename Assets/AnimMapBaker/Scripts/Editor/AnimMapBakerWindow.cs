@@ -1,6 +1,5 @@
 ﻿/*
- * Created by jiadong chen
- * https://jiadong-chen.medium.com/
+ * Created by Arthur Wang
  */
 using UnityEngine;
 using UnityEditor;
@@ -24,9 +23,9 @@ public class AnimMapBakerWindow : EditorWindow {
 
     #region FIELDS
 
-    private const string BuiltInShader = "chenjd/BuiltIn/AnimMapShader";
-    private const string URPShader = "chenjd/URP/AnimMapShader";
-    private const string ShadowShader = "chenjd/BuiltIn/AnimMapWithShadowShader";
+    private const string BuiltInShader = "AnimBaker/BuiltIn/AnimMapShader";
+    private const string URPShader = "AnimBaker/URP/AnimMapShader";
+    private const string ShadowShader = "AnimBaker/BuiltIn/AnimMapWithShadowShader";
     private static GameObject _targetGo;
     private static AnimMapBaker _baker;
     private static string _path = "AnimMapBaker";
@@ -186,63 +185,63 @@ public class AnimMapBakerWindow : EditorWindow {
 
     private static void SaveAsOnePrefab(ref List<BakedData> list)
     {
-        Material mat = null;
-        GameObject go = null;
+        if(list == null || list.Count == 0)
+        {
+            EditorUtility.DisplayDialog("err", "list is null or empty!!", "OK");
+            return;
+        }
+        
+        if(_animMapShader == null)
+        {
+            EditorUtility.DisplayDialog("err", "shader is null!!", "OK");
+        }
+        
+        if(_targetGo == null || !_targetGo.GetComponentInChildren<SkinnedMeshRenderer>())
+        {
+            EditorUtility.DisplayDialog("err", "SkinnedMeshRender is null!!", "OK");
+        }
+
+        var smr = _targetGo.GetComponentInChildren<SkinnedMeshRenderer>();
+        
+        Material mat = new Material(_animMapShader);
+        GameObject go = new GameObject();
+        
         var folderPath = CreateFolder();
         string defaultClip = "";
+        
+        if(mat == null)
+        {
+            EditorUtility.DisplayDialog("err", "mat is null!!", "OK");
+            return;
+        }
+
+        AnimationController aniControl = go.AddComponent<AnimationController>();
+        aniControl.animationClip.Clear();
+        aniControl.animationMap.Clear();
+        aniControl.animationLength.Clear();
+        MeshRenderer meshRenderer = go.AddComponent<MeshRenderer>();
+        MeshFilter meshFilter = go.AddComponent<MeshFilter>();
+        
         for (int i = 0; i < list.Count; i++)
         {
             var data = list[i];
             Texture2D animMap = null;
-            if (mat == null && go == null)
-            {
-                if(_animMapShader == null)
-                {
-                    EditorUtility.DisplayDialog("err", "shader is null!!", "OK");
-                }
-
-                if(_targetGo == null || !_targetGo.GetComponentInChildren<SkinnedMeshRenderer>())
-                {
-                    EditorUtility.DisplayDialog("err", "SkinnedMeshRender is null!!", "OK");
-                }
-
-                var smr = _targetGo.GetComponentInChildren<SkinnedMeshRenderer>();
-                mat = new Material(_animMapShader);
-                animMap = SaveAsAsset(ref data);
-                mat.SetTexture(MainTex, smr.sharedMaterial.mainTexture);
-                mat.SetTexture(AnimMap, animMap);
-                mat.SetFloat(AnimLen, data.AnimLen);
-
                 
-                AssetDatabase.CreateAsset(mat, Path.Combine(folderPath, $"{data.Name}.mat"));
-                
-                if(mat == null)
-                {
-                    EditorUtility.DisplayDialog("err", "mat is null!!", "OK");
-                    return;
-                }
-                go = new GameObject();
-                go.AddComponent<AnimationController>().animationClip.Add(data.ClipName);
-                go.GetComponent<AnimationController>().animationMap.Add(animMap);
-                go.GetComponent<AnimationController>().animationLength.Add(data.AnimLen);
-                defaultClip = data.DefaultClip;
-                go.GetComponent<AnimationController>().animMat = mat;
-                go.AddComponent<MeshRenderer>().sharedMaterial = mat;
-                go.AddComponent<MeshFilter>().sharedMesh = _targetGo.GetComponentInChildren<SkinnedMeshRenderer>().sharedMesh;
-
-                // AssetDatabase.SaveAssets();
-                // AssetDatabase.Refresh();
-                continue;
-            }
-
-            // need a new component to save all this assets
             animMap = SaveAsAsset(ref data);
-            go.GetComponent<AnimationController>().animationClip.Add(data.ClipName);
-            go.GetComponent<AnimationController>().animationMap.Add(animMap);
-            go.GetComponent<AnimationController>().animationLength.Add(data.AnimLen);
+            mat.SetTexture(MainTex, smr.sharedMaterial.mainTexture);
+            mat.SetTexture(AnimMap, animMap);
+            mat.SetFloat(AnimLen, data.AnimLen);
+
+            aniControl.animationClip.Add(data.ClipName);
+            aniControl.animationMap.Add(animMap);
+            aniControl.animationLength.Add(data.AnimLen);
             defaultClip = data.DefaultClip;
         }
-        go.GetComponent<AnimationController>().defaultClipName = defaultClip;// Only need once
+        aniControl.defaultClip = defaultClip;
+        meshRenderer.sharedMaterial = mat;
+        aniControl.animMat = mat;
+        meshFilter.sharedMesh = _targetGo.GetComponentInChildren<SkinnedMeshRenderer>().sharedMesh;
+        AssetDatabase.CreateAsset(mat, Path.Combine(folderPath, $"{_targetGo.name}.mat"));
         PrefabUtility.SaveAsPrefabAsset(go, Path.Combine(folderPath, $"{_targetGo.name}_anim.prefab")
             .Replace("\\", "/"));
         AssetDatabase.SaveAssets();

@@ -1,9 +1,8 @@
 ﻿/*
-Created by jiadong chen
-https://jiadong-chen.medium.com/
+Created by Arthur Wang
 */
 
-Shader "chenjd/BuiltIn/AnimMapShader"
+Shader "AnimBaker/BuiltIn/AnimMapShader"
 {
 	Properties
 	{
@@ -81,7 +80,6 @@ Shader "chenjd/BuiltIn/AnimMapShader"
             
             fixed4 frag (v2f i) : SV_Target
             {
-                
                 fixed4 col = tex2D(_MainTex, i.uv);
                 return col;
             }

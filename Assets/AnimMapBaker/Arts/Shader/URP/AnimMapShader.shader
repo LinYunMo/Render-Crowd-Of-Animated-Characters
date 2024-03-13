@@ -1,15 +1,15 @@
 ﻿/*
-Created by jiadong chen
-https://jiadong-chen.medium.com/
+Created by Arthur Wang
 */
 
-Shader "chenjd/URP/AnimMapShader"
+Shader "AnimBaker/URP/AnimMapShader"
 {
 	Properties
 	{
 		_MainTex ("Texture", 2D) = "white" {}
 		_AnimMap ("AnimMap", 2D) ="white" {}
 		_AnimLen("Anim Length", Float) = 0
+	    _PlayAnim("Play Anim", Float) = 0
 	}
 	
     SubShader
@@ -43,6 +43,7 @@ Shader "chenjd/URP/AnimMapShader"
 
 
             CBUFFER_START(UnityPerMaterial)
+                float _PlayAnim;
                 float _AnimLen;
                 sampler2D _MainTex;
                 float4 _MainTex_ST;
@@ -59,14 +60,15 @@ Shader "chenjd/URP/AnimMapShader"
             {
                 UNITY_SETUP_INSTANCE_ID(v);
 
-                float f = _Time.y / _AnimLen;
-
-                fmod(f, 1.0);
-
-                float animMap_x = (vid + 0.5) * _AnimMap_TexelSize.x;
-                float animMap_y = f;
-
-                float4 pos = tex2Dlod(_AnimMap, float4(animMap_x, animMap_y, 0, 0));
+                float4 pos = v.pos;
+                if(_PlayAnim > 0.5)
+                {
+                    float f = _Time.y / _AnimLen;
+                    fmod(f, 1.0);
+                    float animMap_x = (vid + 0.5) * _AnimMap_TexelSize.x;
+                    float animMap_y = f;
+                    pos = tex2Dlod(_AnimMap, float4(animMap_x, animMap_y, 0, 0));
+                }
 
                 v2f o;
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);

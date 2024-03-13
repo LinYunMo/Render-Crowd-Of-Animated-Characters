@@ -1,9 +1,8 @@
 ﻿/*
-Created by jiadong chen
-https://jiadong-chen.medium.com/
+Created by Arthur Wang
 */
 
-Shader "chenjd/BuiltIn/AnimMapWithShadowShader"
+Shader "AnimBaker/BuiltIn/AnimMapWithShadowShader"
 {
     Properties
     {

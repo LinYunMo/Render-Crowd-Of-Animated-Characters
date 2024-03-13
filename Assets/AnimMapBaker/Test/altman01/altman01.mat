@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: altman01_Alman_win.animMap
+  m_Name: altman01
   m_Shader: {fileID: 4800000, guid: a29e7330fcdae8849bd07e990b12f5de, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -24,7 +24,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _AnimMap:
-        m_Texture: {fileID: 2800000, guid: 95c680c950f7b65448db4cd92efba465, type: 2}
+        m_Texture: {fileID: 2800000, guid: 76b92a21a1645c4499789e58061faf5b, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
@@ -33,7 +33,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AnimLen: 0.50000024
+    - _AnimLen: 0.6
     - _PlayAnim: 0
     m_Colors: []
   m_BuildTextureStacks: []
