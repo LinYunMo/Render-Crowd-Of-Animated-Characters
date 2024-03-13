@@ -2,11 +2,10 @@ using System.Collections.Generic;
 using JetBrains.Annotations;
 using UnityEngine;
 
+
 public class AnimationController : MonoBehaviour
 {
-
-    [SerializeField]
-    public string defaultClip = "";// 何处赋值？
+    
     [SerializeField]
     public List<string> animationClip = new List<string>();
     [SerializeField]
@@ -15,7 +14,26 @@ public class AnimationController : MonoBehaviour
     public List<float> animationLength = new List<float>();
     
     [SerializeField]
-    private Material animMat = null;
+    public Material animMat = null;
+    
+    [SerializeField]
+    private string _defaultClip = "";
+    public string defaultClipName
+    {
+        get
+        {
+            return _defaultClip;
+        }
+        set
+        {
+            if (!IsAnimationExists(value))
+            {
+                Debug.LogError("DefaultClip not exist! Please check it!");
+                return;
+            }
+            _defaultClip = value;
+        }
+    }
     
     [SerializeField, SetProperty("playAnim")]
     private bool _playingAnim = false;
@@ -40,21 +58,33 @@ public class AnimationController : MonoBehaviour
     private static readonly int AnimMapProperty = Shader.PropertyToID("_AnimMap");
     private static readonly int AnimLen = Shader.PropertyToID("_AnimLen");
     private static readonly int PlayAnimProperty = Shader.PropertyToID("_PlayAnim");
+    
+    private float _defaultClipLen = 0.0f;
+    
+    private string _currentClip = "";
+    private float _currentClipLen = 0.0f;
+    private float _currentPlayedTime = 0.0f;
+    private bool _currentClipLoop = true;
 
-    public void Play([CanBeNull] string name)
+    public void Play([CanBeNull] string name, bool loop = true)
     {
         if (!IsAnimationExists(name))
         {
-            if (defaultClip == null) return;
-            name = defaultClip;
+            if (_defaultClip == null) return;
+            name = _defaultClip;
         }
-
+        
         int index = animationClip.IndexOf(name);
         Texture2D clip = (Texture2D)animationMap[index];
         animMat.SetTexture(AnimMapProperty, clip);
         animMat.SetFloat(AnimLen, animationLength[index]);
 
         playAnim = true;
+        
+        _currentClipLoop = loop;
+        _currentClip = name;
+        _currentClipLen = animationLength[index];
+        _currentPlayedTime = 0.0f;
     }
     
     private bool IsAnimationExists(string name)
@@ -76,7 +106,17 @@ public class AnimationController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        if(!_currentClipLoop)
+        {
+            _currentPlayedTime += Time.deltaTime;
+            if (_currentPlayedTime > _currentClipLen)
+            {
+                if (_defaultClip != null)
+                {
+                    Play(_defaultClip);
+                }
+            }
+        }
     }
     
 }

@@ -27,6 +27,6 @@ public class Test : MonoBehaviour
     {
         animNow++;
         if (animNow == animNun) animNow = 0;
-        ani.Play(animName[animNow]);
+        ani.Play(animName[animNow], false);
     }
 }

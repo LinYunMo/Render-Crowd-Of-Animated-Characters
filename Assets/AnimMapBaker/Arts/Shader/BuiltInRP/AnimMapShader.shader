@@ -45,9 +45,9 @@ Shader "chenjd/BuiltIn/AnimMapShader"
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
-
+            
             sampler2D _AnimMap;
-            float4 _AnimMap_TexelSize;//x == 1/width
+            float4 _AnimMap_TexelSize;//x == 1/width //Tilling and offset
 
             float _AnimLen;
             float _PlayAnim;
@@ -81,6 +81,7 @@ Shader "chenjd/BuiltIn/AnimMapShader"
             
             fixed4 frag (v2f i) : SV_Target
             {
+                
                 fixed4 col = tex2D(_MainTex, i.uv);
                 return col;
             }
