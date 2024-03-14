@@ -20,6 +20,14 @@ public class AnimMapBakerWindow : EditorWindow {
         // All in one
         AllInOne
     }
+    
+    private enum InputStrategy
+    {
+        // One Object
+        OneObject,
+        // Folders
+        Folders
+    }
 
     #region FIELDS
 
@@ -37,6 +45,10 @@ public class AnimMapBakerWindow : EditorWindow {
     private static readonly int AnimMap = Shader.PropertyToID("_AnimMap");
     private static readonly int AnimLen = Shader.PropertyToID("_AnimLen");
     private bool _isShadowEnabled = false;
+    
+    private static InputStrategy _inputStrategy = InputStrategy.Folders;
+    private static string _inputPath = "AnimMapBaker";
+    private static List<GameObject> targetList = new List<GameObject>();
 
     #endregion
 
@@ -54,14 +66,27 @@ public class AnimMapBakerWindow : EditorWindow {
 
     private void OnGUI()
     {
-        _targetGo = (GameObject)EditorGUILayout.ObjectField(_targetGo, typeof(GameObject), true);
+        _inputStrategy = (InputStrategy)EditorGUILayout.EnumPopup("Input Type:", _inputStrategy);
+        if (_inputStrategy == InputStrategy.OneObject)
+        {
+            _targetGo = (GameObject)EditorGUILayout.ObjectField(_targetGo, typeof(GameObject), true);
+        }
+        else
+        {
+            if (GUILayout.Button("Select Folder"))
+            {
+                _inputPath = EditorUtility.OpenFolderPanel("Select Folder", "", "");
+            }
+            EditorGUILayout.LabelField(string.Format($"Input Path: {Path.Combine(_inputPath)}"));
+            _inputPath = EditorGUILayout.TextField(_inputPath);
+        }
+        
         _subPath = _targetGo == null ? _subPath : _targetGo.name;
         EditorGUILayout.LabelField(string.Format($"Output Path: {Path.Combine(_path, _subPath)}"));
         _path = EditorGUILayout.TextField(_path);
         _subPath = EditorGUILayout.TextField(_subPath);
 
         _strategy = (SaveStrategy)EditorGUILayout.EnumPopup("Output Type:", _strategy);
-
 
         _isShadowEnabled = EditorGUILayout.Toggle("Enable Shadow", _isShadowEnabled);
 
@@ -82,27 +107,79 @@ public class AnimMapBakerWindow : EditorWindow {
 
         if (!GUILayout.Button("Bake")) return;
 
-        if(_targetGo == null)
+        if (_inputStrategy == InputStrategy.OneObject)
         {
-            EditorUtility.DisplayDialog("err", "targetGo is null！", "OK");
+            if (_targetGo == null)
+            {
+                EditorUtility.DisplayDialog("err", "targetGo is null！", "OK");
+                return;
+            }
+
+            if (_baker == null)
+            {
+                _baker = new AnimMapBaker();
+            }
+
+            _baker.SetAnimData(_targetGo);
+
+            var list = _baker.Bake();
+
+            if (list == null) return;
+            if (_strategy == SaveStrategy.AllInOne)
+            {
+                SaveAsOnePrefab(ref list, _targetGo);
+                return;
+            }
+
+            foreach (var t in list)
+            {
+                var data = t;
+                Save(ref data);
+            }
+        }
+        else
+        {
+            targetList.Clear();
+            string projectPath = Application.dataPath;
+            string relativePath = _inputPath.Replace(projectPath, "Assets");
+            string[] guids = AssetDatabase.FindAssets("t:GameObject", new[] {relativePath});
+            foreach (string guid in guids)
+            {
+                string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                targetList.Add(AssetDatabase.LoadAssetAtPath<GameObject>(assetPath));
+            }
+
+            foreach (var target in targetList)
+            {
+                BakeAnimation(target);
+            }
+        }
+    }
+
+    private void BakeAnimation(GameObject target)
+    {
+        if (target == null)
+        {
+            EditorUtility.DisplayDialog("err", "target is null！", "OK");
             return;
         }
 
-        if(_baker == null)
+        if (_baker == null)
         {
             _baker = new AnimMapBaker();
         }
 
-        _baker.SetAnimData(_targetGo);
+        _baker.SetAnimData(target);
 
         var list = _baker.Bake();
 
         if (list == null) return;
         if (_strategy == SaveStrategy.AllInOne)
         {
-            SaveAsOnePrefab(ref list);
+            SaveAsOnePrefab(ref list, target);
             return;
         }
+
         foreach (var t in list)
         {
             var data = t;
@@ -183,7 +260,7 @@ public class AnimMapBakerWindow : EditorWindow {
             .Replace("\\", "/"));
     }
 
-    private static void SaveAsOnePrefab(ref List<BakedData> list)
+    private static void SaveAsOnePrefab(ref List<BakedData> list, GameObject target)
     {
         if(list == null || list.Count == 0)
         {
@@ -196,12 +273,12 @@ public class AnimMapBakerWindow : EditorWindow {
             EditorUtility.DisplayDialog("err", "shader is null!!", "OK");
         }
         
-        if(_targetGo == null || !_targetGo.GetComponentInChildren<SkinnedMeshRenderer>())
+        if(target == null || !target.GetComponentInChildren<SkinnedMeshRenderer>())
         {
             EditorUtility.DisplayDialog("err", "SkinnedMeshRender is null!!", "OK");
         }
 
-        var smr = _targetGo.GetComponentInChildren<SkinnedMeshRenderer>();
+        var smr = target.GetComponentInChildren<SkinnedMeshRenderer>();
         
         Material mat = new Material(_animMapShader);
         GameObject go = new GameObject();
@@ -240,9 +317,9 @@ public class AnimMapBakerWindow : EditorWindow {
         aniControl.defaultClip = defaultClip;
         meshRenderer.sharedMaterial = mat;
         aniControl.animMat = mat;
-        meshFilter.sharedMesh = _targetGo.GetComponentInChildren<SkinnedMeshRenderer>().sharedMesh;
-        AssetDatabase.CreateAsset(mat, Path.Combine(folderPath, $"{_targetGo.name}.mat"));
-        PrefabUtility.SaveAsPrefabAsset(go, Path.Combine(folderPath, $"{_targetGo.name}_anim.prefab")
+        meshFilter.sharedMesh = target.GetComponentInChildren<SkinnedMeshRenderer>().sharedMesh;
+        AssetDatabase.CreateAsset(mat, Path.Combine(folderPath, $"{target.name}.mat"));
+        PrefabUtility.SaveAsPrefabAsset(go, Path.Combine(folderPath, $"{target.name}_anim.prefab")
             .Replace("\\", "/"));
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
