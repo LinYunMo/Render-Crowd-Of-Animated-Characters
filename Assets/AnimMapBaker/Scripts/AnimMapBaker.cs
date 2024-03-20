@@ -2,6 +2,8 @@
  * Created by Arthur Wang
  * 用来烘焙动作贴图。烘焙对象使用Animation组件，并且在导入时设置Rig为Legacy
  */
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -16,6 +18,8 @@ public struct AnimData
 {
     #region FIELDS
 
+    private const int MaxTextureSize = 2048;
+    
     private int _vertexCount;
     private int _mapWidth;
     private readonly List<AnimationState> _animClips;
@@ -23,11 +27,14 @@ public struct AnimData
 
     private  Animation _animation;
     private SkinnedMeshRenderer _skin;
+    
+    private int _maxRow;
 
     public List<AnimationState> AnimationClips => _animClips;
     public int MapWidth => _mapWidth;
     public string Name => _name;
     public string DefaultClip => _animation.clip.name;
+    public int MaxRow => _maxRow;
 
     #endregion
 
@@ -35,6 +42,12 @@ public struct AnimData
     {
         _vertexCount = smr.sharedMesh.vertexCount;
         _mapWidth = Mathf.NextPowerOfTwo(_vertexCount);
+        _maxRow = 1;
+        if (_mapWidth > MaxTextureSize) // 限制最大宽度
+        {
+            _maxRow = Mathf.CeilToInt((_mapWidth / MaxTextureSize)); // 宽度系数，决定几行才能放得下一帧
+            _mapWidth = MaxTextureSize;
+        }
         _animClips = new List<AnimationState>(anim.Cast<AnimationState>());
         _animation = anim;
         _skin = smr;
@@ -95,10 +108,11 @@ public struct BakedData
     private readonly int _animMapHeight;
     private readonly string _clipName;
     private readonly string _defaultClip;
+    private readonly int _maxRow;
 
     #endregion
 
-    public BakedData(string name, float animLen, Texture2D animMap, string clipName, string defaultClip = "")
+    public BakedData(string name, float animLen, Texture2D animMap, string clipName, int maxRow, string defaultClip = "")
     {
         _name = name;
         _animLen = animLen;
@@ -106,6 +120,7 @@ public struct BakedData
         _animMapWidth = animMap.width;
         _rawAnimMap = animMap.GetRawTextureData();
         _clipName = clipName;
+        _maxRow = maxRow;
         _defaultClip = defaultClip;
     }
 
@@ -122,6 +137,8 @@ public struct BakedData
     public string ClipName => _clipName;
     
     public string DefaultClip => _defaultClip;
+    
+    public int MaxRow => _maxRow;
 }
 
 /// <summary>
@@ -189,30 +206,46 @@ public class AnimMapBaker{
         float sampleTime = 0;
         float perFrameTime = 0;
 
+        // 动作帧率 * 秒数 = 总帧数  取了一个最接近的2的幂的值（对齐）
         curClipFrame = Mathf.ClosestPowerOfTwo((int)(curAnim.clip.frameRate * curAnim.length));
-        perFrameTime = curAnim.length / curClipFrame;
+        perFrameTime = curAnim.length / curClipFrame; // 每一帧的时间
 
-        var animMap = new Texture2D(_animData.Value.MapWidth, curClipFrame, TextureFormat.RGBAHalf, true);
+        // 图像大小及 Layout，CPU端与GPU端的数据格式要一致
+        // TODO
+        int maxRow = _animData.Value.MaxRow;
+        int maxVertex = _animData.Value.MapWidth;
+        var animMap = new Texture2D(_animData.Value.MapWidth, curClipFrame * maxRow, TextureFormat.RGBAHalf, true);
         animMap.name = string.Format($"{_animData.Value.Name}_{curAnim.name}.animMap");
         _animData.Value.AnimationPlay(curAnim.name);
-
+        
+        // 采样并烘焙
+        // 调整算法，需要考虑到顶点数目过多的情况
+        // 根据 maxWidthRatio，决定一帧需要几行
         for (var i = 0; i < curClipFrame; i++)
         {
             curAnim.time = sampleTime;
 
             _animData.Value.SampleAnimAndBakeMesh(ref _bakedMesh);
-
+            
+            // 顶点数据写入纹理
             for(var j = 0; j < _bakedMesh.vertexCount; j++)
             {
                 var vertex = _bakedMesh.vertices[j];
-                animMap.SetPixel(j, i, new Color(vertex.x, vertex.y, vertex.z));
+                int row = j;
+                int col = i * maxRow;
+                if (j >= maxVertex)
+                {
+                    row = j % maxVertex;
+                    col = i * maxRow + 1;
+                }
+                animMap.SetPixel(row, col, new Color(vertex.x, vertex.y, vertex.z));
             }
 
             sampleTime += perFrameTime;
         }
         animMap.Apply();
         
-        _bakedDataList.Add(new BakedData(animMap.name, curAnim.clip.length, animMap, curAnim.clip.name, _animData.Value.DefaultClip));
+        _bakedDataList.Add(new BakedData(animMap.name, curAnim.clip.length, animMap, curAnim.clip.name, maxRow, _animData.Value.DefaultClip));
     }
 
     #endregion

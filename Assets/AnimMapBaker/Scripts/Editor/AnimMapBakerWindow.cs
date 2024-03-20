@@ -44,6 +44,7 @@ public class AnimMapBakerWindow : EditorWindow {
     private static readonly int MainTex = Shader.PropertyToID("_MainTex");
     private static readonly int AnimMap = Shader.PropertyToID("_AnimMap");
     private static readonly int AnimLen = Shader.PropertyToID("_AnimLen");
+    private static readonly int MaxRow = Shader.PropertyToID("_RowNum");
     private bool _isShadowEnabled = false;
     
     private static InputStrategy _inputStrategy = InputStrategy.Folders;
@@ -143,6 +144,7 @@ public class AnimMapBakerWindow : EditorWindow {
             string projectPath = Application.dataPath;
             string relativePath = _inputPath.Replace(projectPath, "Assets");
             string[] guids = AssetDatabase.FindAssets("t:GameObject", new[] {relativePath});
+            // 条件不足 // 不是所有的GameObject都有Animation组件，主要是要识别 FBX，且需要是完整的 FBX
             foreach (string guid in guids)
             {
                 string assetPath = AssetDatabase.GUIDToAssetPath(guid);
@@ -234,6 +236,7 @@ public class AnimMapBakerWindow : EditorWindow {
         mat.SetTexture(MainTex, smr.sharedMaterial.mainTexture);
         mat.SetTexture(AnimMap, animMap);
         mat.SetFloat(AnimLen, data.AnimLen);
+        mat.SetInt(MaxRow,data.MaxRow);
 
         var folderPath = CreateFolder();
         AssetDatabase.CreateAsset(mat, Path.Combine(folderPath, $"{data.Name}.mat"));
@@ -308,6 +311,7 @@ public class AnimMapBakerWindow : EditorWindow {
             mat.SetTexture(MainTex, smr.sharedMaterial.mainTexture);
             mat.SetTexture(AnimMap, animMap);
             mat.SetFloat(AnimLen, data.AnimLen);
+            mat.SetInt(MaxRow,data.MaxRow);
 
             aniControl.animationClip.Add(data.ClipName);
             aniControl.animationMap.Add(animMap);
