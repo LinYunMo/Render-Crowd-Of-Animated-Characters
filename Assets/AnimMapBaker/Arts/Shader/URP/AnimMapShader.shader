@@ -82,8 +82,9 @@ Shader "AnimBaker/URP/AnimMapShader"
                 }
 
                 v2f o;
+                float3 pos3 = pos.xyz;
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
-                o.vertex = ObjectToClipPos(pos);
+                o.vertex = ObjectToClipPos(pos3);
                 return o;
             }
             
