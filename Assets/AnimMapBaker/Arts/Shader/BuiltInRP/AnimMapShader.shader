@@ -59,7 +59,6 @@ Shader "AnimBaker/BuiltIn/AnimMapShader"
                 UNITY_SETUP_INSTANCE_ID(v);
                 
                 float4 pos = v.pos;
-                float3 animMap = float3(0, 0, 0);// debug
                 if (_PlayAnim > 0.5) {
                     float f = _Time.y / _AnimLen;
                     
