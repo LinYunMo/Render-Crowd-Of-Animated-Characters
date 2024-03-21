@@ -10,6 +10,7 @@ Shader "AnimBaker/URP/AnimMapShader"
 		_AnimMap ("AnimMap", 2D) ="white" {}
 		_AnimLen("Anim Length", Float) = 0
 	    _PlayAnim("Play Anim", Float) = 0
+	    _RowNum("Row Num", Int) = 1
 	}
 	
     SubShader
@@ -49,6 +50,7 @@ Shader "AnimBaker/URP/AnimMapShader"
                 float4 _MainTex_ST;
                 sampler2D _AnimMap;
                 float4 _AnimMap_TexelSize;//x == 1/width
+                int _RowNum;
             CBUFFER_END 
             
             float4 ObjectToClipPos (float3 pos)
@@ -64,9 +66,18 @@ Shader "AnimBaker/URP/AnimMapShader"
                 if(_PlayAnim > 0.5)
                 {
                     float f = _Time.y / _AnimLen;
-                    fmod(f, 1.0);
+                    
                     float animMap_x = (vid + 0.5) * _AnimMap_TexelSize.x;
-                    float animMap_y = f;
+                    float animMap_y = fmod(f, 1.0);
+                    // 比例数据离散化
+                    int row = floor(animMap_y / (_AnimMap_TexelSize.y * _RowNum));
+                    animMap_y = (row * _RowNum + 0.5) * _AnimMap_TexelSize.y;
+                    
+                    if (vid >= 2048) // Maybe can be uniform
+                    {
+                        animMap_x = (vid - 2048 + 0.5) * _AnimMap_TexelSize.x;
+                        animMap_y = (row * _RowNum + 1.5) * _AnimMap_TexelSize.y;
+                    }
                     pos = tex2Dlod(_AnimMap, float4(animMap_x, animMap_y, 0, 0));
                 }
 
